@@ -6,6 +6,7 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace ImageResizer
 {
@@ -38,36 +39,48 @@ namespace ImageResizer
         /// <param name="sourcePath">圖片來源目錄路徑</param>
         /// <param name="destPath">產生圖片目的目錄路徑</param>
         /// <param name="scale">縮放比例</param>
-        public void ResizeImages(string sourcePath, string destPath, double scale)
+        public async Task ResizeImages(string sourcePath, string destPath, double scale)
         {
             var allFiles = FindImages(sourcePath);
+            var taskList = new List<Task>();
+
             foreach (var filePath in allFiles)
             {
                 Image imgPhoto = Image.FromFile(filePath);
                 var imgName = Path.GetFileNameWithoutExtension(filePath);
 
-                var sw = new Stopwatch();
-                sw.Start();
+
                 int sourceWidth = imgPhoto.Width;
                 int sourceHeight = imgPhoto.Height;
-
                 int destionatonWidth = (int)(sourceWidth * scale);
                 int destionatonHeight = (int)(sourceHeight * scale);
 
-                // CPU bound
-                Bitmap processedImage = processBitmap((Bitmap)imgPhoto,
-                    sourceWidth, sourceHeight,
-                    destionatonWidth, destionatonHeight);
+                var task = Task.Run(async () =>
+                {
+                    var sw = new Stopwatch();
+                    sw.Start();                 
 
-                // I/O bound
-                string destFile = Path.Combine(destPath, imgName + ".jpg");
-                processedImage.Save(destFile, ImageFormat.Jpeg);
-                sw.Stop();
+                    // CPU bound
+                    Bitmap processedImage = processBitmap((Bitmap)imgPhoto,
+                        sourceWidth, sourceHeight,
+                        destionatonWidth, destionatonHeight);
 
-                Console.WriteLine($"resize image: {imgName}, size: {imgPhoto.Size}, scale: {scale} " +
-                    $"ThreadID: {Thread.CurrentThread.ManagedThreadId}, " +
-                    $"Spend: {sw.ElapsedMilliseconds}ms");
+                    string destFile = Path.Combine(destPath, imgName + ".jpg");
+
+                    // I/O bound
+                    processedImage.Save(destFile, ImageFormat.Jpeg);
+
+                    sw.Stop();
+
+                    Console.WriteLine($"resize image: {imgName}, size: {imgPhoto.Size}, scale: {scale} " +
+                        $"ThreadID: {Thread.CurrentThread.ManagedThreadId}, " +
+                        $"Spend: {sw.ElapsedMilliseconds}ms");
+                });
+
+                taskList.Add(task);              
             }
+
+            await Task.WhenAll(taskList.ToArray());
         }
 
         /// <summary>
