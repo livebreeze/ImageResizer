@@ -1,8 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Threading;
 
 namespace ImageResizer
 {
@@ -41,20 +44,29 @@ namespace ImageResizer
             foreach (var filePath in allFiles)
             {
                 Image imgPhoto = Image.FromFile(filePath);
-                string imgName = Path.GetFileNameWithoutExtension(filePath);
+                var imgName = Path.GetFileNameWithoutExtension(filePath);
 
+                var sw = new Stopwatch();
+                sw.Start();
                 int sourceWidth = imgPhoto.Width;
                 int sourceHeight = imgPhoto.Height;
 
                 int destionatonWidth = (int)(sourceWidth * scale);
                 int destionatonHeight = (int)(sourceHeight * scale);
 
+                // CPU bound
                 Bitmap processedImage = processBitmap((Bitmap)imgPhoto,
                     sourceWidth, sourceHeight,
                     destionatonWidth, destionatonHeight);
 
+                // I/O bound
                 string destFile = Path.Combine(destPath, imgName + ".jpg");
                 processedImage.Save(destFile, ImageFormat.Jpeg);
+                sw.Stop();
+
+                Console.WriteLine($"resize image: {imgName}, size: {imgPhoto.Size}, scale: {scale} " +
+                    $"ThreadID: {Thread.CurrentThread.ManagedThreadId}, " +
+                    $"Spend: {sw.ElapsedMilliseconds}ms");
             }
         }
 
