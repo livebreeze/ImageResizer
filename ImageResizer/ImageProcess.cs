@@ -33,17 +33,21 @@ namespace ImageResizer
             }
         }
 
+        public async Task ResizeImagesAsyncWithodCancel(string sourcePath, string destPath, double scale)
+        {
+            await ResizeImagesAsync(sourcePath, destPath, scale, CancellationToken.None);
+        }
+
         /// <summary>
         /// 進行圖片的縮放作業
         /// </summary>
         /// <param name="sourcePath">圖片來源目錄路徑</param>
         /// <param name="destPath">產生圖片目的目錄路徑</param>
         /// <param name="scale">縮放比例</param>
-        public async Task ResizeImages(string sourcePath, string destPath, double scale)
+        public async Task ResizeImagesAsync(string sourcePath, string destPath, double scale, CancellationToken token)
         {
             var allFiles = FindImages(sourcePath);
             var taskList = new List<Task>();
-
             foreach (var filePath in allFiles)
             {
                 Image imgPhoto = Image.FromFile(filePath);
@@ -57,30 +61,50 @@ namespace ImageResizer
 
                 var task = Task.Run(async () =>
                 {
-                    var sw = new Stopwatch();
-                    sw.Start();                 
+                    // cancel
+                    if (CancelProcess(token)) return;
 
                     // CPU bound
                     Bitmap processedImage = processBitmap((Bitmap)imgPhoto,
                         sourceWidth, sourceHeight,
                         destionatonWidth, destionatonHeight);
 
+                    // cancel
+                    if (CancelProcess(token)) return;
+
                     string destFile = Path.Combine(destPath, imgName + ".jpg");
 
                     // I/O bound
                     processedImage.Save(destFile, ImageFormat.Jpeg);
 
-                    sw.Stop();
+                    Console.WriteLine($"resize image: {imgName}, size: {imgPhoto.Size}, scale: {scale}, ThreadID: {Thread.CurrentThread.ManagedThreadId}");
 
-                    Console.WriteLine($"resize image: {imgName}, size: {imgPhoto.Size}, scale: {scale} " +
-                        $"ThreadID: {Thread.CurrentThread.ManagedThreadId}, " +
-                        $"Spend: {sw.ElapsedMilliseconds}ms");
+                    // cancel
+                    if (CancelProcess(token))
+                    {
+                        File.Delete(destFile);
+                        return;
+                    }
                 });
 
-                taskList.Add(task);              
+                taskList.Add(task);
             }
 
             await Task.WhenAll(taskList.ToArray());
+        }
+
+        private static bool CancelProcess(CancellationToken token)
+        {
+            if (token.IsCancellationRequested)
+            {
+                Console.WriteLine("Task Cancel");
+                if (token.IsCancellationRequested == true)
+                {                  
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
