@@ -18,10 +18,10 @@ namespace ImageResizer
             var processFileCount = report.ProcessFileList?.Count ?? 0;
             var successFileCount = report.SuccessFileList?.Count ?? 0;
 
-            Console.WriteLine($"{report.Status}, " +
-                $"檔案: {report.CurrentFileName}, " +
-                $"處理進度(done,process,total) {successFileCount}/{processFileCount}/{report.TotalCount}, " +
-                $"FileProcessThread: {report.ThreadId}");
+            Console.WriteLine($"{report.Status}" +
+                $"\t檔案: {report.CurrentFileName}" +
+                $"\t處理進度(done,process,total) {successFileCount}/{processFileCount}/{report.TotalCount}" +
+                $"\tFileProcessThread: {report.ThreadId}");
 
             base.OnReport(value);
         }
