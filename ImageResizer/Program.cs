@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -20,25 +21,37 @@ namespace ImageResizer
             imageProcess.Clean(destinationPath);
             CancellationTokenSource cts = new CancellationTokenSource();
             CancellationTokenSource ctsTimeout = new CancellationTokenSource();
-            ctsTimeout.CancelAfter(9000);
+            ctsTimeout.CancelAfter(11000);
             CancellationTokenSource ctsCombination = CancellationTokenSource.CreateLinkedTokenSource(cts.Token, ctsTimeout.Token);
 
             #region 等候使用者輸入 取消 c 按鍵
             QuieueClick(cts);
             #endregion
 
+            Console.WriteLine($"MainThread: {Thread.CurrentThread.ManagedThreadId}");
+
             Stopwatch sw = new Stopwatch();
             sw.Start();
 
+            var progress = new MyProgress<ResizeImageReport>((report) =>
+            {
+                //var processFileCount = report.ProcessFileList?.Count ?? 0;
+                //Console.WriteLine($"狀態: {report.Status}, " +
+                //    $"檔案: {report.CurrentFileName}, " +
+                //    $"處理進度 {processFileCount}/{report.TotalCount}, " +
+                //    $"FileProcessThread: {report.ThreadId}, " +
+                //    $"ReportCWThread: {Thread.CurrentThread.ManagedThreadId}");
+            });
+
             try
             {
-                await imageProcess.ResizeImagesAsync(sourcePath, destinationPath, 5.0, ctsCombination.Token);
+                await imageProcess.ResizeImagesAsync(sourcePath, destinationPath, 5.0, cts.Token, progress);
             }
             catch (OperationCanceledException ex)
             {
-                Console.WriteLine(ex);
+                //Console.WriteLine(ex);
             }
-            catch  (Exception ex)
+            catch (Exception ex)
             {
                 Console.WriteLine(ex);
             }

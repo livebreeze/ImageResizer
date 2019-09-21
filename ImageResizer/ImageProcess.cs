@@ -33,10 +33,10 @@ namespace ImageResizer
             }
         }
 
-        public async Task ResizeImagesAsyncWithodCancel(string sourcePath, string destPath, double scale)
-        {
-            await ResizeImagesAsync(sourcePath, destPath, scale, CancellationToken.None);
-        }
+        ////public async Task ResizeImagesAsyncWithodCancel(string sourcePath, string destPath, double scale)
+        ////{
+        ////    await ResizeImagesAsync(sourcePath, destPath, scale, CancellationToken.None, null);
+        ////}
 
         /// <summary>
         /// 進行圖片的縮放作業
@@ -44,15 +44,18 @@ namespace ImageResizer
         /// <param name="sourcePath">圖片來源目錄路徑</param>
         /// <param name="destPath">產生圖片目的目錄路徑</param>
         /// <param name="scale">縮放比例</param>
-        public async Task ResizeImagesAsync(string sourcePath, string destPath, double scale, CancellationToken token)
+        public async Task ResizeImagesAsync(string sourcePath, string destPath, double scale, CancellationToken token, IProgress<ResizeImageReport> progress)
         {
             var allFiles = FindImages(sourcePath);
             var taskList = new List<Task>();
+            var totalCount = allFiles.Count;
+            var processFileList = new List<string>();
+            var successFileList = new List<string>();
+
             foreach (var filePath in allFiles)
             {
                 Image imgPhoto = Image.FromFile(filePath);
                 var imgName = Path.GetFileNameWithoutExtension(filePath);
-
 
                 int sourceWidth = imgPhoto.Width;
                 int sourceHeight = imgPhoto.Height;
@@ -61,13 +64,23 @@ namespace ImageResizer
 
                 var task = Task.Run(async () =>
                 {
+                    processFileList.Add(imgName);
+                    progress.Report(new ResizeImageReport {
+                        CurrentFileName = imgName,
+                        TotalCount = totalCount,
+                        Status = "+++Start+++",
+                        ProcessFileList = processFileList,
+                        SuccessFileList = successFileList,
+                        ThreadId = Thread.CurrentThread.ManagedThreadId
+                    });
+
                     // cancel
                     if (CancelProcess(token)) { token.ThrowIfCancellationRequested(); return; }
 
-                     // CPU bound
-                     Bitmap processedImage = processBitmap((Bitmap)imgPhoto,
-                        sourceWidth, sourceHeight,
-                        destionatonWidth, destionatonHeight);
+                    // CPU bound
+                    Bitmap processedImage = processBitmap((Bitmap)imgPhoto,
+                       sourceWidth, sourceHeight,
+                       destionatonWidth, destionatonHeight);
 
                     // cancel
                     if (CancelProcess(token)) { token.ThrowIfCancellationRequested(); return; }
@@ -77,7 +90,7 @@ namespace ImageResizer
                     // I/O bound
                     processedImage.Save(destFile, ImageFormat.Jpeg);
 
-                    Console.WriteLine($"resize image: {imgName}, size: {imgPhoto.Size}, scale: {scale}, ThreadID: {Thread.CurrentThread.ManagedThreadId}");
+                    //Console.WriteLine($"resize image: {imgName}, size: {imgPhoto.Size}, scale: {scale}, ThreadID: {Thread.CurrentThread.ManagedThreadId}");
 
                     // cancel
                     if (CancelProcess(token))
@@ -86,6 +99,15 @@ namespace ImageResizer
                         token.ThrowIfCancellationRequested();
                         return;
                     }
+
+                    successFileList.Add(imgName);
+                    progress.Report(new ResizeImageReport { CurrentFileName = imgName,
+                        TotalCount = totalCount,
+                        ThreadId = Thread.CurrentThread.ManagedThreadId,
+                        Status = "---完成---",
+                        ProcessFileList = processFileList,
+                        SuccessFileList = successFileList,
+                   });
                 });
 
                 taskList.Add(task);

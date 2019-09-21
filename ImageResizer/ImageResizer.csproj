@@ -45,8 +45,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ImageProcess.cs" />
+    <Compile Include="MyProgress.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ResizeImageReport.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
