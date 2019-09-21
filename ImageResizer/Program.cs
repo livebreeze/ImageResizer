@@ -19,6 +19,10 @@ namespace ImageResizer
 
             imageProcess.Clean(destinationPath);
             CancellationTokenSource cts = new CancellationTokenSource();
+            CancellationTokenSource ctsTimeout = new CancellationTokenSource();
+            ctsTimeout.CancelAfter(9000);
+            CancellationTokenSource ctsCombination = CancellationTokenSource.CreateLinkedTokenSource(cts.Token, ctsTimeout.Token);
+
             #region 等候使用者輸入 取消 c 按鍵
             QuieueClick(cts);
             #endregion
@@ -28,7 +32,7 @@ namespace ImageResizer
 
             try
             {
-                await imageProcess.ResizeImagesAsync(sourcePath, destinationPath, 5.0, cts.Token);
+                await imageProcess.ResizeImagesAsync(sourcePath, destinationPath, 5.0, ctsCombination.Token);
             }
             catch (OperationCanceledException ex)
             {
