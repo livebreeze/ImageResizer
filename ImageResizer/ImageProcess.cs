@@ -62,15 +62,15 @@ namespace ImageResizer
                 var task = Task.Run(async () =>
                 {
                     // cancel
-                    if (CancelProcess(token)) return;
+                    if (CancelProcess(token)) { token.ThrowIfCancellationRequested(); return; }
 
-                    // CPU bound
-                    Bitmap processedImage = processBitmap((Bitmap)imgPhoto,
+                     // CPU bound
+                     Bitmap processedImage = processBitmap((Bitmap)imgPhoto,
                         sourceWidth, sourceHeight,
                         destionatonWidth, destionatonHeight);
 
                     // cancel
-                    if (CancelProcess(token)) return;
+                    if (CancelProcess(token)) { token.ThrowIfCancellationRequested(); return; }
 
                     string destFile = Path.Combine(destPath, imgName + ".jpg");
 
@@ -83,6 +83,7 @@ namespace ImageResizer
                     if (CancelProcess(token))
                     {
                         File.Delete(destFile);
+                        token.ThrowIfCancellationRequested();
                         return;
                     }
                 });

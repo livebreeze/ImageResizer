@@ -37,7 +37,10 @@ namespace ImageResizer
             catch (OperationCanceledException ex)
             {
                 Console.WriteLine(ex);
-                throw;
+            }
+            catch  (Exception ex)
+            {
+                Console.WriteLine(ex);
             }
 
             sw.Stop();
