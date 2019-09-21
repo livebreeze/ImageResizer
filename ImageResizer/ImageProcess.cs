@@ -98,10 +98,8 @@ namespace ImageResizer
             if (token.IsCancellationRequested)
             {
                 Console.WriteLine("Task Cancel");
-                if (token.IsCancellationRequested == true)
-                {                  
-                    return true;
-                }
+
+                return true;
             }
 
             return false;
